@@ -108,8 +108,7 @@ class TextGenerator {
                 });
                 lineCount++;
             }
-            // console.log("this.restoreText: ", this.restoreText());
-            console.log(this.createRandomText(600, true, true));
+            console.log(this.createRandomText(300, false, true));
         } catch (err) {
             console.error(err);
         }
@@ -146,67 +145,31 @@ class TextGenerator {
 
     /**
      * Create random text.
-     * @param length Text length.
+     * @param textLength Text length measured in words.
      * @param isSentences Create random-length sentences (by capitalizing first sentence words and adding punctuation symbols).
      * @param isParagraphs Create random-length paragraphs (by adding new line symbols).
      */
     public createRandomText(
-        length = 10,
+        textLength = 10,
         isSentences = false,
         isParagraphs = false
     ): string {
-        /**
-         * At the end of text we may have arbitrary punctuation sign.
-         * Given it is the end of the last sentence, it must be
-         * replaced with full stop.
-         */
-        function normalizeEndOfText(res: string, isSentences: boolean): string {
-            if (
-                isSentences &&
-                (res.endsWith(",") || res.endsWith(";") || res.endsWith(":"))
-            ) {
-                // Splice the last punctuation symbol and replace it with a dot
-                return res.slice(0, -1) + ".";
-            }
-            return res;
-        }
-
-        function handleParagraphs(
-            res: string,
-            isParagraphs: boolean,
-            isSentences: boolean
-        ): string {
-            if (isParagraphs) {
-                if (isSentences) {
-                    let output = [];
-                    const sentences = res.split(". ");
-                    let sentencesLength = sentences.length;
-                    if (sentencesLength > 5) {
-                        while (sentencesLength) {
-                            let randomParagraphSentenceLength =
-                                TextGenerator.randomNumberGen(6, 2);
-                            if (
-                                randomParagraphSentenceLength >= sentencesLength
-                            ) {
-                                break;
-                            }
-                            while (randomParagraphSentenceLength) {
-                                output.push(sentences + ". ");
-                                randomParagraphSentenceLength--;
-                                sentencesLength--;
-                            }
-                            output[output.length - 1] =
-                                output[output.length - 1] + "\n";
-                        }
-                        // TODO: continue here
-                        res = output.join("");
-                    }
-                } else {
-                    const paragraphs = res.split("\n ");
-                    res = paragraphs.join("\n");
+        function calculateParagraphSplitPoints(
+            numberOfSentences: number
+        ): number[] {
+            const paragraphSplitPoints = [];
+            let prevSplitPoint = 0;
+            while (numberOfSentences) {
+                const randomPoint = TextGenerator.randomNumberGen(6, 2);
+                if (randomPoint > numberOfSentences) {
+                    break;
                 }
+                const splitPoint = randomPoint + prevSplitPoint;
+                paragraphSplitPoints.push(splitPoint);
+                prevSplitPoint = splitPoint;
+                numberOfSentences -= randomPoint;
             }
-            return res;
+            return paragraphSplitPoints;
         }
 
         const outputArr = [];
@@ -216,100 +179,124 @@ class TextGenerator {
             ",",
             "?",
             ".",
+            ",",
+            ",",
+            ",",
+            ".",
+            ".",
+            ".",
+            ",",
+            ".",
+            ".",
+            ".",
+            "!",
+            ".",
             "?",
-            ",",
-            ",",
-            ".",
-            ".",
-            ".",
-            ".",
-            ".",
-            ".",
-            "!",
-            "!",
             ".",
             ";",
             ":",
-            ".",
             ",",
             ".",
             ",",
+            ".",
+            ",",
+            "!",
             ",",
             ".",
         ];
+        const endOfSentenceSymbols = [".", "?", "!"];
 
-        let randomParagraphWordLength = Math.floor(Math.random() * 200);
-        if (randomParagraphWordLength < 40) {
-            randomParagraphWordLength = 40;
-        }
-        while (outputArr.length < length) {
-            if (isSentences) {
+        let randomParagraphWordLength = TextGenerator.randomNumberGen(200, 40);
+        let numberOfSentences = 0;
+
+        if (isSentences) {
+            let usedWordsCounter = 0;
+            const sentences: string[] = [];
+            let sentence: string[] = [];
+            let prevPunctuationSymbol = ".";
+            /**
+             * Number of words in a sentence.
+             */
+            while (usedWordsCounter < textLength) {
                 const randomPunctuationSymbol =
                     punctuationSymbols[
                         TextGenerator.randomNumberGen(punctuationSymbols.length)
                     ];
-
-                let randomSentenceLength = TextGenerator.randomNumberGen(15, 3);
-                let isSentenceStart = true;
-                while (randomSentenceLength && outputArr.length < length) {
-                    const randomWordIndex = Math.floor(
-                        Math.random() * wordsLength - 1
+                sentence = endOfSentenceSymbols.includes(prevPunctuationSymbol)
+                    ? []
+                    : sentence;
+                let randomSentenceLength = TextGenerator.randomNumberGen(20, 3);
+                while (randomSentenceLength) {
+                    const randomWordIndex = TextGenerator.randomNumberGen(
+                        wordsLength - 1
                     );
                     const randomWord = this.words[randomWordIndex];
-                    if (isSentenceStart) {
-                        // Capitalize only if the word is not already capitalized
-                        // and it is the first word or the previous word
-                        // does not end in a comma, semicolon or colon.
-                        const shouldCapitalize =
-                            !TextGenerator.isCapitalized(randomWord) &&
-                            (outputArr.length < 1 ||
-                                (!outputArr[outputArr.length - 1].endsWith(
-                                    ","
-                                ) &&
-                                    !outputArr[outputArr.length - 1].endsWith(
-                                        ":"
-                                    ) &&
-                                    !outputArr[outputArr.length - 1].endsWith(
-                                        ";"
-                                    )));
-                        if (shouldCapitalize) {
-                            outputArr.push(
-                                TextGenerator.capitalize(randomWord)
-                            );
-                        } else {
-                            outputArr.push(randomWord);
-                        }
-                        isSentenceStart = false;
-                    } else {
-                        outputArr.push(randomWord);
-                    }
+                    sentence.push(randomWord);
+
+                    // Loop guards
+                    usedWordsCounter++;
                     randomSentenceLength--;
                 }
-                outputArr[outputArr.length - 1] =
-                    outputArr[outputArr.length - 1] + randomPunctuationSymbol;
-            } else {
-                const randomWordIndex = TextGenerator.randomNumberGen(
-                    this.words.length - 1
-                );
-                const randomWord = this.words[randomWordIndex];
-                outputArr.push(randomWord);
+                prevPunctuationSymbol = randomPunctuationSymbol;
+                if (endOfSentenceSymbols.includes(randomPunctuationSymbol)) {
+                    sentences.push(
+                        sentence.join(" ") + randomPunctuationSymbol
+                    );
+                } else {
+                    sentence[sentence.length - 1] =
+                        sentence[sentence.length - 1] + randomPunctuationSymbol;
+                }
+            }
 
-                if (isParagraphs) {
-                    if (!randomParagraphWordLength) {
-                        outputArr[outputArr.length - 1] =
-                            outputArr[outputArr.length - 1] + "\n";
-                        randomParagraphWordLength =
-                            TextGenerator.randomNumberGen(200, 40);
-                    } else {
-                        randomParagraphWordLength--;
+            let splitPoints: number[] = [];
+
+            if (isParagraphs) {
+                numberOfSentences = sentences.length;
+                splitPoints = calculateParagraphSplitPoints(numberOfSentences);
+            }
+
+            return sentences
+                .map((s, i) => {
+                    if (splitPoints.length && splitPoints.includes(i)) {
+                        s = s + "\n";
                     }
+                    return TextGenerator.capitalize(s);
+                })
+                .reduce((acc, s) => {
+                    if (s.endsWith("\n")) {
+                        return (acc += s);
+                    }
+                    return acc + s + " ";
+                }, "");
+        }
+
+        while (outputArr.length < textLength) {
+            const randomWordIndex = TextGenerator.randomNumberGen(
+                this.words.length - 1
+            );
+            const randomWord = this.words[randomWordIndex];
+            outputArr.push(randomWord);
+
+            if (isParagraphs) {
+                if (!randomParagraphWordLength) {
+                    outputArr[outputArr.length - 1] =
+                        outputArr[outputArr.length - 1] + "\n";
+                    randomParagraphWordLength = TextGenerator.randomNumberGen(
+                        200,
+                        40
+                    );
+                } else {
+                    randomParagraphWordLength--;
                 }
             }
         }
 
-        let res = outputArr.join(" ");
-        res = normalizeEndOfText(res, isSentences);
-        res = handleParagraphs(res, isParagraphs, isSentences);
+        let res = outputArr.reduce((acc, s) => {
+            if (s.endsWith("\n")) {
+                return (acc += s);
+            }
+            return acc + s + " ";
+        }, "");
 
         return res;
     }
