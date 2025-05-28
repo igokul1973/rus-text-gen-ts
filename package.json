@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc && cp -r ./texts ./dist/",
     "test": "npm run test"
   },
   "repository": {
@@ -30,6 +30,8 @@
   },
   "homepage": "https://github.com/igokul1973/rus-text-gen-ts#readme",
   "devDependencies": {
-    "@types/node": "^22.15.21"
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
   }
 }
