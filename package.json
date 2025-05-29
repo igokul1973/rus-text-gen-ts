@@ -24,13 +24,13 @@
     "токст"
   ],
   "author": "Igor Kulebyakin",
-  "license": "GPL-3.0 license",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/igokul1973/rus-text-gen-ts/issues"
   },
   "homepage": "https://github.com/igokul1973/rus-text-gen-ts#readme",
   "devDependencies": {
-    "@types/node": "^22.15.21",
+    "@types/node": "^22.15.24",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
