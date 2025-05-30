@@ -1,5 +1,6 @@
 import { open } from "fs/promises";
 import path from "path";
+import getFilePath from "./getFilePath.js";
 
 interface ILine {
     // The index of the word in the `this.words` array
@@ -12,6 +13,11 @@ interface ILine {
     symbolAfter: Map<number, string>;
 }
 
+interface IParseOutput {
+    lines: ILine[];
+    words: string[];
+}
+
 /**
  * A generates random or coherent Russian text from an existing text file.
  * The text file contains corrected excerpts from various philosophers of
@@ -22,30 +28,31 @@ class TextGenerator {
      * All unique words of the text sorted
      * in alphabetical order.
      */
-    private words: string[] = [];
+    private readonly words: string[] = [];
     /**
      * Each line of the text
      */
     private readonly lines: ILine[] = [];
 
-    constructor() {
-        this.start();
+    constructor(input: IParseOutput) {
+        this.lines = input.lines;
+        this.words = input.words;
     }
 
     /**
-     * Parses the text file `./texts/text1.txt`.
+     * Parses the default text file `./texts/text1.txt` and returns an
+     * instance of `TextGenerator` with the parsed data.
      *
-     * Note: Given the parsing is an async operation, this private
-     * method starts the parsing process as the process cannot be
-     * called directly from the constructor.
+     * @returns A promise that resolves when the file has been parsed.
      *
      * @private
      */
-    private start() {
-        // Path must be absolute
-        const __dirname = path.resolve();
-        const p = path.resolve(__dirname, "./texts/text1.txt");
-        this.parseFile(p);
+    public static async build() {
+        // @ts-ignore
+        const currentFilePath = getFilePath();
+        const p = path.join(currentFilePath, "../../texts/text1.txt");
+        const res = await this.parseFile(p);
+        return new TextGenerator(res);
     }
 
     /**
@@ -63,11 +70,17 @@ class TextGenerator {
      * that are capitalized.
      * `symbolAfter` is a map of indices of words in the `this.words` array
      * to the symbol right after the word.
+     *
+     * The returned data structure optimizes generation of the text.
      */
-    private async parseFile(path: string): Promise<void> {
+    private static async parseFile(path: string): Promise<IParseOutput> {
         try {
             let lineCount = 0;
             const lines = [];
+            const res: IParseOutput = {
+                lines: [],
+                words: [],
+            };
             const wordSet: Set<string> = new Set();
             const file = await open(path, "r");
             // Read each line in the file and add it
@@ -75,7 +88,7 @@ class TextGenerator {
             for await (const line of file.readLines()) {
                 lines.push(line);
                 const lineWords = line.split(" ");
-                lineWords.forEach((word, index) => {
+                lineWords.forEach((word) => {
                     const [w] = TextGenerator.stripPunctuation(word);
                     if (
                         TextGenerator.isCyrillicWord(
@@ -89,13 +102,13 @@ class TextGenerator {
                 });
             }
             // Turn the word set into an array and sort it
-            this.words = Array.from(wordSet).toSorted((a, b) =>
+            res.words = Array.from(wordSet).toSorted((a, b) =>
                 a.localeCompare(b)
             );
             // Go through each word in each line and add their index
             // to the lines array.
             for (const line of lines) {
-                this.lines.push({
+                res.lines.push({
                     wordIndices: [],
                     isCapitalized: new Set(),
                     symbolAfter: new Map(),
@@ -106,27 +119,27 @@ class TextGenerator {
                     const wordWithoutPunctuation =
                         TextGenerator.trimAllSymbols(w);
                     if (TextGenerator.isCyrillicWord(wordWithoutPunctuation)) {
-                        // Find the word index  in the `this.words` array.
+                        // Find the word index  in the `res.words` array.
                         // Use binary search as the array is sorted.
                         const i = TextGenerator.binarySearchCyrillic(
-                            this.words,
+                            res.words,
                             wordWithoutPunctuation.toLocaleLowerCase()
                         );
                         if (i === -1) {
                             return;
                         }
-                        // Push the index of the word in the `this.words` array
+                        // Push the index of the word in the `res.words` array
                         // to the lines array
-                        this.lines[lineCount].wordIndices.push(i);
+                        res.lines[lineCount].wordIndices.push(i);
                         // check if the w (word) is capitalized
                         if (TextGenerator.isCapitalized(w)) {
-                            this.lines[lineCount].isCapitalized.add(
-                                this.lines[lineCount].wordIndices.length - 1
+                            res.lines[lineCount].isCapitalized.add(
+                                res.lines[lineCount].wordIndices.length - 1
                             );
                         }
                         if (s) {
-                            this.lines[lineCount].symbolAfter.set(
-                                this.lines[lineCount].wordIndices.length - 1,
+                            res.lines[lineCount].symbolAfter.set(
+                                res.lines[lineCount].wordIndices.length - 1,
                                 s
                             );
                         }
@@ -134,13 +147,15 @@ class TextGenerator {
                 });
                 lineCount++;
             }
+
+            return res;
         } catch (err) {
             console.error(err);
             throw err;
         }
     }
 
-    // Note: Used for development and debugging purposes. DO NOT TOUCH!
+    // Note: May be used for development and debugging purposes. DO NOT REMOVE!
     // private restoreText() {
     //     let text = "";
     //     this.lines.forEach((line, lineIndex) => {
@@ -250,6 +265,11 @@ class TextGenerator {
                 }
                 wiIndex++;
             }
+
+            if (!/[.,!?;:]$/.test(outputArr[outputArr.length - 1])) {
+                outputArr[outputArr.length - 1] =
+                    outputArr[outputArr.length - 1] + ".";
+            }
             outputArr[outputArr.length - 1] =
                 outputArr[outputArr.length - 1] + "\n";
         }
@@ -292,7 +312,6 @@ class TextGenerator {
             throw new Error("Please define isParagraphs argument");
         }
 
-        let numberOfSentences = 0;
         const wordsLength = this.words.length;
         const endOfSentenceSymbols = [".", "?", "!"];
         const punctuationSymbols = [
@@ -363,7 +382,7 @@ class TextGenerator {
         }
 
         let splitPoints: number[] = isParagraphs
-            ? TextGenerator.calculateParagraphSplitPoints(numberOfSentences)
+            ? TextGenerator.calculateParagraphSplitPoints(sentences.length)
             : [];
 
         return sentences
@@ -547,4 +566,4 @@ class TextGenerator {
     }
 }
 
-export const rusTextGenerator = new TextGenerator();
+export default TextGenerator;
