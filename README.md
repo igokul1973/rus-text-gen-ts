@@ -32,8 +32,8 @@ This library generates coherent texts based on excerpts from philosophers of the
 
 **Usage and Distribution**
 
--   `npm install --save-dev russian-text-gen`
--   `import TextGenerator from russian-text-gen`
+-   `npm install [-D] @igk19/rus-text-gen`
+-   `import TextGenerator from '@igk19/rus-text-gen';`
 -   create an async function which will call the next line...
 -   `const rusTextGenerator = await TextGenerator.build()`
 -   Now you can use `rusTextGenerator.createRandomText()` - for random text generation, or `rusTextGenerator.createText()` - for coherent one.
@@ -42,7 +42,7 @@ This library generates coherent texts based on excerpts from philosophers of the
 Example:
 
 ```
-import TextGenerator from russian-text-gen;
+import TextGenerator from '@igk19/russian-text-gen';
 
 (async () => {
     const rusTextGenerator = await TextGenerator.build();
