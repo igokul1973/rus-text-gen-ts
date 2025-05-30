@@ -361,7 +361,7 @@ class TextGenerator {
                 ? []
                 : sentence;
             let randomSentenceLength = TextGenerator.randomNumberGen(20, 3);
-            while (randomSentenceLength) {
+            while (randomSentenceLength && usedWordsCounter < textLength) {
                 const randomWordIndex = TextGenerator.randomNumberGen(
                     wordsLength - 1
                 );
@@ -371,6 +371,10 @@ class TextGenerator {
                 // Loop guards
                 usedWordsCounter++;
                 randomSentenceLength--;
+            }
+            if (usedWordsCounter === textLength) {
+                sentences.push(sentence.join(" ") + ".");
+                break;
             }
             prevPunctuationSymbol = randomPunctuationSymbol;
             if (endOfSentenceSymbols.includes(randomPunctuationSymbol)) {

@@ -1,6 +1,6 @@
 {
   "name": "@igk19/rus-text-gen",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Generator of coherent and random texts in Russian language from real texts containing (as of now) about 30000 words.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
